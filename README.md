@@ -23,13 +23,6 @@ You can also verify the binary with [minisign](https://jedisct1.github.io/minisi
 minisign -Vm sidekick-<OS>-<ARCH> -P RWTx5Zr1tiHQLwG9keckT0c45M3AGeHD6IvimQHpyRywVWGbP1aVSGav
 ```
 
-## Docker
-
-Pull the latest release via:
-```
-docker pull minio/sidekick:v1.1.0
-```
-
 ## Build from source
 
 ```
