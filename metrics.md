@@ -27,7 +27,7 @@ tar xvfz prometheus-*.tar.gz
 cd prometheus-*
 ```
 
-Prometheus server is a single binary called `prometheus` (or `prometheus.exe` on Microsoft Windows). Run the binary and pass `--help` flag to see available options
+Prometheus server is a single binary called `prometheus`. Run the binary and pass `--help` flag to see available options
 
 ```sh
 ./prometheus --help

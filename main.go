@@ -405,7 +405,7 @@ func (s *site) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusBadGateway)
 }
 
-// mustGetSystemCertPool - return system CAs or empty pool in case of error (or windows)
+// mustGetSystemCertPool - return system CAs or empty pool in case of error
 func mustGetSystemCertPool() *x509.CertPool {
 	pool, err := x509.SystemCertPool()
 	if err != nil {
