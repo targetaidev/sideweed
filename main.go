@@ -34,6 +34,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"syscall"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -41,6 +42,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh/terminal"
 	"golang.org/x/net/http2"
+	"golang.org/x/sys/unix"
 
 	"github.com/minio/cli"
 	"github.com/minio/pkg/console"
@@ -132,6 +134,33 @@ func (l logMessage) String() string {
 	}
 	return fmt.Sprintf("%s%2s: %s  %s is %s: %s", console.Colorize("LogMsgType", l.Type), "",
 		l.Timestamp.Format(timeFormat), l.Endpoint, l.Status, l.Error)
+}
+
+func setTCPParameters(network, address string, c syscall.RawConn) error {
+	c.Control(func(fdPtr uintptr) {
+		// got socket file descriptor to set parameters.
+		fd := int(fdPtr)
+
+		_ = unix.SetsockoptInt(fd, unix.SOL_SOCKET, unix.SO_REUSEADDR, 1)
+
+		_ = unix.SetsockoptInt(fd, unix.SOL_SOCKET, unix.SO_REUSEPORT, 1)
+
+		// Enable TCP open
+		// https://lwn.net/Articles/508865/ - 16k queue size.
+		_ = syscall.SetsockoptInt(fd, syscall.SOL_TCP, unix.TCP_FASTOPEN, 16*1024)
+
+		// Enable TCP fast connect
+		// TCPFastOpenConnect sets the underlying socket to use
+		// the TCP fast open connect. This feature is supported
+		// since Linux 4.11.
+		_ = syscall.SetsockoptInt(fd, syscall.IPPROTO_TCP, unix.TCP_FASTOPEN_CONNECT, 1)
+
+		// Enable TCP quick ACK, John Nagle says
+		// "Set TCP_QUICKACK. If you find a case where that makes things worse, let me know."
+		_ = syscall.SetsockoptInt(fd, syscall.IPPROTO_TCP, unix.TCP_QUICKACK, 1)
+
+	})
+	return nil
 }
 
 // Backend entity to which requests gets load balanced.
