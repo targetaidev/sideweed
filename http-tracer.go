@@ -176,7 +176,7 @@ func httpInternalTrace(req *http.Request, resp *http.Response, reqTime, respTime
 	doTrace(ti, backend)
 }
 
-// InternalTrace returns trace for sidekick http requests
+// InternalTrace returns trace for sideweed http requests
 func InternalTrace(req *http.Request, resp *http.Response, reqTime, respTime time.Time) TraceInfo {
 	t := TraceInfo{}
 	t.NodeName = req.Host
@@ -309,7 +309,7 @@ func doTrace(trace TraceInfo, backend *Backend) {
 		return
 	}
 
-	if globalTrace == "minio" && st.Path != backend.healthCheckPath {
+	if globalTrace == "cluster" && st.Path != backend.healthCheckPath {
 		return
 	}
 
