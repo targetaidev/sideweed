@@ -17,8 +17,6 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -41,7 +39,6 @@ import (
 	"github.com/rs/dnscache"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh/terminal"
-	"golang.org/x/net/http2"
 	"golang.org/x/sys/unix"
 
 	"github.com/minio/cli"
@@ -429,56 +426,6 @@ func (s *site) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusBadGateway)
 }
 
-// mustGetSystemCertPool - return system CAs or empty pool in case of error
-func mustGetSystemCertPool() *x509.CertPool {
-	pool, err := x509.SystemCertPool()
-	if err != nil {
-		return x509.NewCertPool()
-	}
-	return pool
-}
-
-// getCertPool - return system CAs or load CA from file if flag specified
-func getCertPool(cacert string) *x509.CertPool {
-	if cacert == "" {
-		return mustGetSystemCertPool()
-	}
-
-	pool := x509.NewCertPool()
-	caPEM, err := ioutil.ReadFile(cacert)
-	if err != nil {
-		console.Fatalln(fmt.Errorf("unable to load CA certificate: %s", err))
-	}
-	ok := pool.AppendCertsFromPEM([]byte(caPEM))
-	if !ok {
-		console.Fatalln(fmt.Errorf("unable to load CA certificate: %s is not valid certificate", cacert))
-	}
-	return pool
-}
-
-// getCertKeyPair - load client certificate and key pair from file if specified
-func getCertKeyPair(cert, key string) []tls.Certificate {
-	if cert == "" && key == "" {
-		return nil
-	}
-	if cert == "" || key == "" {
-		console.Fatalln(fmt.Errorf("both --cert and --key flags must be specified"))
-	}
-	certPEM, err := ioutil.ReadFile(cert)
-	if err != nil {
-		console.Fatalln(fmt.Errorf("unable to load certificate: %s", err))
-	}
-	keyPEM, err := ioutil.ReadFile(key)
-	if err != nil {
-		console.Fatalln(fmt.Errorf("unable to load key: %s", err))
-	}
-	keyPair, err := tls.X509KeyPair([]byte(certPEM), []byte(keyPEM))
-	if err != nil {
-		console.Fatalln(fmt.Errorf("%s", err))
-	}
-	return []tls.Certificate{keyPair}
-}
-
 // dialContextWithDNSCache is a helper function which returns `net.DialContext` function.
 // It randomly fetches an IP from the DNS cache and dials it by the given dial
 // function. It dials one by one and returns first connected `net.Conn`.
@@ -542,13 +489,12 @@ func newProxyDialContext(dialTimeout time.Duration) DialContext {
 	}
 }
 
-func clientTransport(ctx *cli.Context, enableTLS bool) http.RoundTripper {
+func clientTransport(ctx *cli.Context) http.RoundTripper {
 	tr := &http.Transport{
 		Proxy:                 http.ProxyFromEnvironment,
 		DialContext:           dialContextWithDNSCache(dnsCache, newProxyDialContext(10*time.Second)),
 		MaxIdleConnsPerHost:   1024,
 		IdleConnTimeout:       15 * time.Second,
-		TLSHandshakeTimeout:   15 * time.Second,
 		ExpectContinueTimeout: 15 * time.Second,
 		// Set this value so that the underlying transport round-tripper
 		// doesn't try to auto decode the body of objects with
@@ -557,25 +503,6 @@ func clientTransport(ctx *cli.Context, enableTLS bool) http.RoundTripper {
 		// Refer:
 		//    https://golang.org/src/net/http/transport.go?h=roundTrip#L1843
 		DisableCompression: true,
-	}
-
-	if enableTLS {
-		// Keep TLS config.
-		tr.TLSClientConfig = &tls.Config{
-			NextProtos:         []string{"h2", "http/1.1"},
-			RootCAs:            getCertPool(ctx.GlobalString("cacert")),
-			Certificates:       getCertKeyPair(ctx.GlobalString("client-cert"), ctx.GlobalString("client-key")),
-			InsecureSkipVerify: ctx.GlobalBool("insecure"),
-			// Can't use SSLv3 because of POODLE and BEAST
-			// Can't use TLSv1.0 because of POODLE and BEAST using CBC cipher
-			// Can't use TLSv1.1 because of RC4 cipher usage
-			MinVersion:               tls.VersionTLS12,
-			PreferServerCipherSuites: true,
-		}
-	}
-
-	if tr.TLSClientConfig != nil {
-		http2.ConfigureTransport(tr)
 	}
 
 	return tr
@@ -620,8 +547,8 @@ func configureSite(ctx *cli.Context, siteNum int, siteStrs []string, healthCheck
 		if target.Scheme == "" {
 			target.Scheme = "http"
 		}
-		if target.Scheme != "http" && target.Scheme != "https" {
-			console.Fatalln("Unexpected scheme %s, should be http or https, please use '%s --help'",
+		if target.Scheme != "http" {
+			console.Fatalln("Unexpected scheme %s, should be http, please use '%s --help'",
 				endpoint, ctx.App.Name)
 		}
 		if target.Host == "" {
@@ -636,19 +563,14 @@ func configureSite(ctx *cli.Context, siteNum int, siteStrs []string, healthCheck
 				endpoint, ctx.App.Name))
 		}
 		if transport == nil {
-			transport = clientTransport(ctx, target.Scheme == "https")
+			transport = clientTransport(ctx)
 		}
 
 		proxy := &httputil.ReverseProxy{
 			Director: func(r *http.Request) {
 				r.Header.Add("X-Forwarded-Host", r.Host)
 				r.Header.Add("X-Real-IP", r.RemoteAddr)
-
-				if target.Scheme == "https" {
-					r.URL.Scheme = "https"
-				} else {
-					r.URL.Scheme = "http"
-				}
+				r.URL.Scheme = "http"
 				r.URL.Host = target.Host
 			},
 			Transport: transport,
@@ -723,14 +645,8 @@ func sideweedMain(ctx *cli.Context) {
 		console.Fatalln(err)
 	}
 	router.PathPrefix(slashSeparator).Handler(m)
-	if ctx.String("cert") != "" && ctx.String("key") != "" {
-		if err := http.ListenAndServeTLS(addr, ctx.String("cert"), ctx.String("key"), router); err != nil {
-			console.Fatalln(err)
-		}
-	} else {
-		if err := http.ListenAndServe(addr, router); err != nil {
-			console.Fatalln(err)
-		}
+	if err := http.ListenAndServe(addr, router); err != nil {
+		console.Fatalln(err)
 	}
 }
 
@@ -770,10 +686,6 @@ func main() {
 			Value: 5,
 		},
 		cli.BoolFlag{
-			Name:  "insecure, i",
-			Usage: "disable TLS certificate verification",
-		},
-		cli.BoolFlag{
 			Name:  "log, l",
 			Usage: "enable logging",
 		},
@@ -793,26 +705,6 @@ func main() {
 		cli.BoolFlag{
 			Name:  "debug",
 			Usage: "output verbose trace",
-		},
-		cli.StringFlag{
-			Name:  "cacert",
-			Usage: "CA certificate to verify peer against",
-		},
-		cli.StringFlag{
-			Name:  "client-cert",
-			Usage: "client certificate file",
-		},
-		cli.StringFlag{
-			Name:  "client-key",
-			Usage: "client private key file",
-		},
-		cli.StringFlag{
-			Name:  "cert",
-			Usage: "server certificate file",
-		},
-		cli.StringFlag{
-			Name:  "key",
-			Usage: "server private key file",
 		},
 	}
 	app.CustomAppHelpTemplate = `NAME:
@@ -835,19 +727,13 @@ EXAMPLES:
   2. Load balance across 4 servers (http://server1:9000 to http://server4:9000), listen on port 8000
      $ sideweed --health-path "/health" --address ":8000" http://server{1...4}:9000
 
-  3. Load balance across 4 servers using HTTPS and disable TLS certificate validation
-     $ sideweed --health-path "/health" --insecure https://server{1...4}:9000
-
-  4. Two sites, each site having two pools, each pool having 4 servers:
+  3. Two sites, each site having two pools, each pool having 4 servers:
      $ sideweed --health-path=/health http://site1-server{1...4}:9000,http://site1-server{5...8}:9000 \
                http://site2-server{1...4}:9000,http://site2-server{5...8}:9000
 
-  5. Two sites, each site having two pools, each pool having 4 servers. After failover, allow read requests to site2 even if it has just read quorum:
+  4. Two sites, each site having two pools, each pool having 4 servers. After failover, allow read requests to site2 even if it has just read quorum:
      $ sideweed --health-path=/health --read-health-path=/health/read  http://site1-server{1...4}:9000,http://site1-server{5...8}:9000 \
                http://site2-server{1...4}:9000,http://site2-server{5...8}:9000
-
-  6. Sideweed as TLS terminator:
-     $ sideweed --cert public.crt --key private.key --health-path=/health http://site1-server{1...4}:9000
 
 `
 	app.Action = sideweedMain
