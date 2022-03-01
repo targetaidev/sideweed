@@ -1,10 +1,10 @@
-# How to monitor Sidekick loadbalancer with Prometheus [![Slack](https://slack.min.io/slack?type=svg)](https://slack.min.io)
+# How to monitor sideweed loadbalancer with Prometheus
 
 [Prometheus](https://prometheus.io) is a cloud-native monitoring platform, built originally at SoundCloud. Prometheus offers a multi-dimensional data model with time series data identified by metric name and key/value pairs. The data collection happens via a pull model over HTTP/HTTPS. Targets to pull data from are discovered via service discovery or static configuration.
 
-Sidekick exports Prometheus compatible data by default as an authorized endpoint at `/.prometheus/metrics`. Users looking to monitor their MinIO instances can point Prometheus configuration to scrape data from this endpoint.
+sideweed exports Prometheus compatible data by default as an authorized endpoint at `/.prometheus/metrics`. Users looking to monitor their server instances can point Prometheus configuration to scrape data from this endpoint.
 
-This document explains how to setup Prometheus and configure it to scrape data from Sidekick.
+This document explains how to setup Prometheus and configure it to scrape data from sideweed.
 
 **Table of Contents**
 
@@ -16,7 +16,7 @@ This document explains how to setup Prometheus and configure it to scrape data f
         - [3.2 Public Prometheus config](#32-public-prometheus-config)
     - [4. Update `scrape_configs` section in prometheus.yml](#4-update-scrapeconfigs-section-in-prometheusyml)
     - [5. Start Prometheus](#5-start-prometheus)
-- [List of metrics exposed by Sidekick](#list-of-metrics-exposed-by-sidekick)
+- [List of metrics exposed by sideweed](#list-of-metrics-exposed-by-sideweed)
 
 ### 1. Download Prometheus
 
@@ -43,19 +43,19 @@ Refer [Prometheus documentation](https://prometheus.io/docs/introduction/first_s
 
 ### 2. Configure authentication type for Prometheus metrics
 
-Sidekick supports `public` authentication mode for Prometheus.
+sideweed supports `public` authentication mode for Prometheus.
 
 ```
-$ sidekick --health-path=/ready http://myapp.myorg.dom
+$ sideweed --health-path=/health http://myapp.myorg.dom
 ```
 
 ### 3. Configuring Prometheus
 
-Following prometheus config is sufficient to start scraping metrics data from Sidekick.
+Following prometheus config is sufficient to start scraping metrics data from sideweed.
 
 ```yaml
 scrape_configs:
-- job_name: sidekick-job
+- job_name: sideweed-job
   metrics_path: /.prometheus/metrics
   scheme: http
   static_configs:
@@ -70,15 +70,15 @@ Start (or) Restart Prometheus service by running
 ./prometheus --config.file=prometheus.yml
 ```
 
-Here `prometheus.yml` is the name of configuration file. You can now see Sidekick metrics in Prometheus dashboard. By default Prometheus dashboard is accessible at `http://localhost:9090`.
+Here `prometheus.yml` is the name of configuration file. You can now see sideweed metrics in Prometheus dashboard. By default Prometheus dashboard is accessible at `http://localhost:9090`.
 
-## List of metrics exposed by Sidekick
+## List of metrics exposed by sideweed
 
-Sidekick loadbalancer exposes the following metrics on `/.prometheus/metrics` endpoint. All of these can be accessed via Prometheus dashboard.
+sideweed loadbalancer exposes the following metrics on `/.prometheus/metrics` endpoint. All of these can be accessed via Prometheus dashboard.
 
-| Metrics Name              | Description                                                      |
-|:-------------------------:|:----------------------------------------------------------------:|
-| `sidekick_requests_total` | Total number of requests in current SideKick instance.              |
-| `sidekick_errors_total`   | Total number of errors in requests in current SideKick instance.    |
-| `sidekick_rx_bytes_total` | Total number of bytes received by current SideKick server instance. |
-| `sidekick_tx_bytes_total` | Total number of bytes sent to current SideKick server instance.     |
+| Metrics Name              | Description                                                         |
+|:-------------------------:|:-------------------------------------------------------------------:|
+| `sideweed_requests_total` | Total number of requests in current sideweed instance.              |
+| `sideweed_errors_total`   | Total number of errors in requests in current sideweed instance.    |
+| `sideweed_rx_bytes_total` | Total number of bytes received by current sideweed server instance. |
+| `sideweed_tx_bytes_total` | Total number of bytes sent to current sideweed server instance.     |

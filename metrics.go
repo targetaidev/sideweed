@@ -25,32 +25,31 @@ import (
 )
 
 func init() {
-	prometheus.MustRegister(newSidekickCollector())
+	prometheus.MustRegister(newSideweedCollector())
 }
 
-// newSidekickCollector describes the collector
-// and returns reference of sidekickCollector
+// newSideweedCollector describes the collector
+// and returns reference of sideweedCollector
 // It creates the Prometheus Description which is used
 // to define metric and  help string
-func newSidekickCollector() *sidekickCollector {
-	return &sidekickCollector{
-		desc: prometheus.NewDesc("sidekick_stats", "Statistics exposed by Sidekick loadbalancer", nil, nil),
+func newSideweedCollector() *sideweedCollector {
+	return &sideweedCollector{
+		desc: prometheus.NewDesc("sideweed_stats", "Statistics exposed by sideweed loadbalancer", nil, nil),
 	}
 }
 
-// sidekickCollector is the Custom Collector
-type sidekickCollector struct {
+// sideweedCollector is the Custom Collector
+type sideweedCollector struct {
 	desc *prometheus.Desc
 }
 
 // Describe sends the super-set of all possible descriptors of metrics
-func (c *sidekickCollector) Describe(ch chan<- *prometheus.Desc) {
+func (c *sideweedCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.desc
 }
 
 // Collect is called by the Prometheus registry when collecting metrics.
-func (c *sidekickCollector) Collect(ch chan<- prometheus.Metric) {
-
+func (c *sideweedCollector) Collect(ch chan<- prometheus.Metric) {
 	for _, c := range globalConnStats {
 		if c == nil {
 			continue
@@ -59,8 +58,8 @@ func (c *sidekickCollector) Collect(ch chan<- prometheus.Metric) {
 		// total calls per node
 		ch <- prometheus.MustNewConstMetric(
 			prometheus.NewDesc(
-				prometheus.BuildFQName("sidekick", "requests", "total"),
-				"Total number of calls in current SideKick server instance",
+				prometheus.BuildFQName("sideweed", "requests", "total"),
+				"Total number of calls in current sideweed server instance",
 				[]string{"endpoint"}, nil),
 			prometheus.CounterValue,
 			float64(c.totalCalls.Load()),
@@ -68,8 +67,8 @@ func (c *sidekickCollector) Collect(ch chan<- prometheus.Metric) {
 		)
 		ch <- prometheus.MustNewConstMetric(
 			prometheus.NewDesc(
-				prometheus.BuildFQName("sidekick", "errors", "total"),
-				"Total number of failed calls in current SideKick server instance",
+				prometheus.BuildFQName("sideweed", "errors", "total"),
+				"Total number of failed calls in current sideweed server instance",
 				[]string{"endpoint"}, nil),
 			prometheus.CounterValue,
 			float64(c.totalFailedCalls.Load()),
@@ -77,8 +76,8 @@ func (c *sidekickCollector) Collect(ch chan<- prometheus.Metric) {
 		)
 		ch <- prometheus.MustNewConstMetric(
 			prometheus.NewDesc(
-				prometheus.BuildFQName("sidekick", "rx", "bytes_total"),
-				"Total number of bytes received by current SideKick server instance",
+				prometheus.BuildFQName("sideweed", "rx", "bytes_total"),
+				"Total number of bytes received by current sideweed server instance",
 				[]string{"endpoint"}, nil),
 			prometheus.CounterValue,
 			float64(c.getTotalInputBytes()),
@@ -86,8 +85,8 @@ func (c *sidekickCollector) Collect(ch chan<- prometheus.Metric) {
 		)
 		ch <- prometheus.MustNewConstMetric(
 			prometheus.NewDesc(
-				prometheus.BuildFQName("sidekick", "tx", "bytes_total"),
-				"Total number of bytes sent by current SideKick server instance",
+				prometheus.BuildFQName("sideweed", "tx", "bytes_total"),
+				"Total number of bytes sent by current sideweed server instance",
 				[]string{"endpoint"}, nil),
 			prometheus.CounterValue,
 			float64(c.getTotalOutputBytes()),
@@ -100,7 +99,7 @@ func (c *sidekickCollector) Collect(ch chan<- prometheus.Metric) {
 func metricsHandler() (http.Handler, error) {
 	registry := prometheus.NewRegistry()
 
-	err := registry.Register(newSidekickCollector())
+	err := registry.Register(newSideweedCollector())
 	if err != nil {
 		return nil, err
 	}
