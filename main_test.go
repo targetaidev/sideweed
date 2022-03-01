@@ -20,7 +20,6 @@ import (
 )
 
 func TestGetHealthCheckURL_Valid(t *testing.T) {
-	// ----- conditions -------------------------------------------------------
 	testCases := []struct {
 		name            string
 		endpoint        string
@@ -30,32 +29,30 @@ func TestGetHealthCheckURL_Valid(t *testing.T) {
 	}{
 		{
 			name:            "PortSetToZero",
-			endpoint:        "http://minio1:9000",
-			healthCheckPath: "/minio/health/ready",
-			want:            "http://minio1:9000/minio/health/ready",
+			endpoint:        "http://server1:9000",
+			healthCheckPath: "/health",
+			want:            "http://server1:9000/health",
 		},
 		{
 			name:            "PortSetToNonZeroValue",
-			endpoint:        "http://minio1:9000",
-			healthCheckPath: "/minio/health/ready",
+			endpoint:        "http://server1:9000",
+			healthCheckPath: "/health",
 			healthCheckPort: 4242,
-			want:            "http://minio1:4242/minio/health/ready",
+			want:            "http://server1:4242/health",
 		},
 		{
 			name:            "PortSetToUpperLimit",
-			endpoint:        "http://minio1:9000",
-			healthCheckPath: "/minio/health/ready",
+			endpoint:        "http://server1:9000",
+			healthCheckPath: "/health",
 			healthCheckPort: portUpperLimit,
-			want:            "http://minio1:65535/minio/health/ready",
+			want:            "http://server1:65535/health",
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			// ----- call -----------------------------------------------------
 			healthCheckURL, err := getHealthCheckURL(tc.endpoint, tc.healthCheckPath, tc.healthCheckPort)
 
-			// ----- verify ---------------------------------------------------
 			if err != nil {
 				t.Errorf("Expected no error, got %q", err)
 			}
@@ -68,7 +65,6 @@ func TestGetHealthCheckURL_Valid(t *testing.T) {
 }
 
 func TestGetHealthCheckURL_Invalid(t *testing.T) {
-	// ----- conditions -------------------------------------------------------
 	want := ""
 
 	testCases := []struct {
@@ -83,24 +79,22 @@ func TestGetHealthCheckURL_Invalid(t *testing.T) {
 		},
 		{
 			name:            "PortNumberBelowLowerLimit",
-			endpoint:        "http://minio1:9000",
-			healthCheckPath: "/minio/health/ready",
+			endpoint:        "http://server1:9000",
+			healthCheckPath: "/health",
 			healthCheckPort: portLowerLimit - 1,
 		},
 		{
 			name:            "PortNumberAboveUpperLimit",
-			endpoint:        "http://minio1:9000",
-			healthCheckPath: "/minio/health/ready",
+			endpoint:        "http://server1:9000",
+			healthCheckPath: "/health",
 			healthCheckPort: portUpperLimit + 1,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			// ----- call -----------------------------------------------------
 			healthCheckURL, err := getHealthCheckURL(tc.endpoint, tc.healthCheckPath, tc.healthCheckPort)
 
-			// ----- verify ---------------------------------------------------
 			if err == nil {
 				t.Errorf("Expected an error")
 			}
