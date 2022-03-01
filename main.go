@@ -366,7 +366,7 @@ type multisite struct {
 }
 
 func (m *multisite) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Server", "SideKick") // indicate sidekick is serving the request
+	w.Header().Set("Server", "sideweed") // indicate sideweed is serving the request
 	for _, s := range m.sites {
 		if s.Online() {
 			if r.URL.Path == healthCheckPath {
@@ -669,7 +669,7 @@ func configureSite(ctx *cli.Context, siteNum int, siteStrs []string, healthCheck
 	}
 }
 
-func sidekickMain(ctx *cli.Context) {
+func sideweedMain(ctx *cli.Context) {
 	checkMain(ctx)
 
 	log2.SetFormatter(&logrus.TextFormatter{
@@ -743,15 +743,13 @@ func main() {
 
 	app := cli.NewApp()
 	app.Name = os.Args[0]
-	app.Author = "MinIO, Inc."
 	app.Description = `High-Performance sidecar load-balancer`
 	app.UsageText = "[FLAGS] SITE1 [SITE2..]"
 	app.Version = version
-	app.Copyright = "(c) 2020-2021 MinIO, Inc."
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:  "address, a",
-			Usage: "listening address for sidekick",
+			Usage: "listening address for sideweed",
 			Value: ":8080",
 		},
 		cli.StringFlag{
@@ -781,7 +779,7 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:  "trace, t",
-			Usage: "enable request tracing - valid values are [all,application,minio]",
+			Usage: "enable request tracing - valid values are [all,application,cluster]",
 			Value: "all",
 		},
 		cli.BoolFlag{
@@ -790,7 +788,7 @@ func main() {
 		},
 		cli.BoolFlag{
 			Name:  "json",
-			Usage: "output sidekick logs and trace in json format",
+			Usage: "output sideweed logs and trace in json format",
 		},
 		cli.BoolFlag{
 			Name:  "debug",
@@ -831,27 +829,27 @@ SITE:
   If all servers in SITE1 are down, then the traffic is routed to the next site - SITE2.
 
 EXAMPLES:
-  1. Load balance across 4 MinIO Servers (http://minio1:9000 to http://minio4:9000)
-     $ sidekick --health-path "/minio/health/cluster" http://minio{1...4}:9000
+  1. Load balance across 4 servers (http://server1:9000 to http://server4:9000)
+     $ sideweed --health-path "/health" http://server{1...4}:9000
 
-  2. Load balance across 4 MinIO Servers (http://minio1:9000 to http://minio4:9000), listen on port 8000
-     $ sidekick --health-path "/minio/health/cluster" --address ":8000" http://minio{1...4}:9000
+  2. Load balance across 4 servers (http://server1:9000 to http://server4:9000), listen on port 8000
+     $ sideweed --health-path "/health" --address ":8000" http://server{1...4}:9000
 
-  3. Load balance across 4 MinIO Servers using HTTPS and disable TLS certificate validation
-     $ sidekick --health-path "/minio/health/cluster" --insecure https://minio{1...4}:9000
+  3. Load balance across 4 servers using HTTPS and disable TLS certificate validation
+     $ sideweed --health-path "/health" --insecure https://server{1...4}:9000
 
   4. Two sites, each site having two pools, each pool having 4 servers:
-     $ sidekick --health-path=/minio/health/cluster http://site1-minio{1...4}:9000,http://site1-minio{5...8}:9000 \
-               http://site2-minio{1...4}:9000,http://site2-minio{5...8}:9000
+     $ sideweed --health-path=/health http://site1-server{1...4}:9000,http://site1-server{5...8}:9000 \
+               http://site2-server{1...4}:9000,http://site2-server{5...8}:9000
 
   5. Two sites, each site having two pools, each pool having 4 servers. After failover, allow read requests to site2 even if it has just read quorum:
-     $ sidekick --health-path=/minio/health/cluster --read-health-path=/minio/health/cluster/read  http://site1-minio{1...4}:9000,http://site1-minio{5...8}:9000 \
-               http://site2-minio{1...4}:9000,http://site2-minio{5...8}:9000
+     $ sideweed --health-path=/health --read-health-path=/health/read  http://site1-server{1...4}:9000,http://site1-server{5...8}:9000 \
+               http://site2-server{1...4}:9000,http://site2-server{5...8}:9000
 
-  6. Sidekick as TLS terminator:
-     $ sidekick --cert public.crt --key private.key --health-path=/minio/health/cluster http://site1-minio{1...4}:9000
+  6. Sideweed as TLS terminator:
+     $ sideweed --cert public.crt --key private.key --health-path=/health http://site1-server{1...4}:9000
 
 `
-	app.Action = sidekickMain
+	app.Action = sideweedMain
 	app.Run(os.Args)
 }

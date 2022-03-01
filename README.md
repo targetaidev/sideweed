@@ -24,19 +24,19 @@ NAME:
   sideweed - High-Performance sidecar load-balancer
 
 USAGE:
-  sideweed - [FLAGS] POOL1 [POOL2..]
+  ./sideweed - [FLAGS] SITE1 [SITE2..]
 
 FLAGS:
-  --address value, -a value           listening address (default: ":8080")
+  --address value, -a value           listening address for sideweed (default: ":8080")
   --health-path value, -p value       health check path
-  --read-health-path value, -r value  health check path for read access - valid only for failover pool
+  --read-health-path value, -r value  health check path for read access - valid only for failover site
   --health-port value                 health check port (default: 0)
   --health-duration value, -d value   health check duration in seconds (default: 5)
   --insecure, -i                      disable TLS certificate verification
   --log, -l                           enable logging
   --trace value, -t value             enable request tracing - valid values are [all,application,cluster] (default: "all")
   --quiet, -q                         disable console messages
-  --json                              output logs and trace in json format
+  --json                              output sideweed logs and trace in json format
   --debug                             output verbose trace
   --cacert value                      CA certificate to verify peer against
   --client-cert value                 client certificate file
@@ -46,24 +46,45 @@ FLAGS:
   --help, -h                          show help
   --version, -v                       print the version
 
-POOL:
-  Each POOL is a comma separated list of servers of that pool: http://172.17.0.{2...5},http://172.17.0.{6...9}.
-  If all servers in a POOL are down, then the traffic is routed to the next pool - POOL2.
+SITE:
+  Each SITE is a comma separated list of pools of that site: http://172.17.0.{2...5},http://172.17.0.{6...9}.
+  If all servers in SITE1 are down, then the traffic is routed to the next site - SITE2.
+
+EXAMPLES:
+  1. Load balance across 4 servers (http://server1:9000 to http://server4:9000)
+     $ sideweed --health-path "/health" http://server{1...4}:9000
+
+  2. Load balance across 4 servers (http://server1:9000 to http://server4:9000), listen on port 8000
+     $ sideweed --health-path "/health" --address ":8000" http://server{1...4}:9000
+
+  3. Load balance across 4 servers using HTTPS and disable TLS certificate validation
+     $ sideweed --health-path "/health" --insecure https://server{1...4}:9000
+
+  4. Two sites, each site having two pools, each pool having 4 servers:
+     $ sideweed --health-path=/health http://site1-server{1...4}:9000,http://site1-server{5...8}:9000 \
+               http://site2-server{1...4}:9000,http://site2-server{5...8}:9000
+
+  5. Two sites, each site having two pools, each pool having 4 servers. After failover, allow read requests to site2 even if it has just read quorum:
+     $ sideweed --health-path=/health --read-health-path=/health/read  http://site1-server{1...4}:9000,http://site1-server{5...8}:9000 \
+               http://site2-server{1...4}:9000,http://site2-server{5...8}:9000
+
+  6. Sideweed as TLS terminator:
+     $ sideweed --cert public.crt --key private.key --health-path=/health http://site1-server{1...4}:9000
 ```
 
 ## Examples
 
 ### Load balance across a web service using DNS provided IPs
 ```
-$ sideweed --health-path=/health/endpoint http://myapp.myorg.dom
+$ sideweed --health-path=/health http://myapp.myorg.domain
 ```
 
 ### Load balance across servers (http://server1:9000 to http://server4:9000)
 ```
-$ sideweed --health-path=/health/endpoint --address :8000 http://server{1...4}:9000
+$ sideweed --health-path=/health --address :8000 http://server{1...4}:9000
 ```
 
-### Two pools with 4 servers each
+### Two sites with 4 servers each
 ```
-$ sideweed --health-path=/health/endpoint http://pool1-server{1...4}:9000 http://pool2-server{1...4}:9000
+$ sideweed --health-path=/health http://site1-server{1...4}:9000 http://site2-server{1...4}:9000
 ```
