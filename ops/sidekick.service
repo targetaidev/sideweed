@@ -1,17 +1,17 @@
 [Unit]
-Description=Sidekick
-Documentation=https://github.com/minio/sidekick/blob/master/README.md
+Description=sideweed
+Documentation=https://github.com/targetaidev/sideweed/blob/master/README.md
 Wants=network-online.target
 After=network-online.target
-AssertFileIsExecutable=/usr/local/bin/sidekick
+AssertFileIsExecutable=/usr/local/bin/sideweed
 
 [Service]
 User=nobody
 Group=nogroup
 
-EnvironmentFile=/etc/default/sidekick
+EnvironmentFile=/etc/default/sideweed
 
-ExecStart=/usr/local/bin/sidekick $SIDEKICK_OPTIONS $SIDEKICK_SITES
+ExecStart=/usr/local/bin/sideweed $SIDEWEED_OPTIONS $SIDEWEED_SITES
 
 # Let systemd restart this service always
 Restart=always
@@ -25,4 +25,3 @@ SendSIGKILL=no
 
 [Install]
 WantedBy=multi-user.target
-
