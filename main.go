@@ -145,7 +145,6 @@ type Backend struct {
 	healthCheckPort     int
 	healthCheckDuration int
 	Stats               *BackendStats
-	cacheClient         *S3CacheClient
 }
 
 const (
@@ -391,15 +390,11 @@ func (s *site) nextProxy() *Backend {
 func (s *site) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	backend := s.nextProxy()
 	if backend != nil {
-		cacheHandlerFn := func(w http.ResponseWriter, r *http.Request) {
-			if backend.cacheClient != nil {
-				cacheHandler(w, r, backend)(w, r)
-			} else {
-				backend.proxy.ServeHTTP(w, r)
-			}
+		handlerFn := func(w http.ResponseWriter, r *http.Request) {
+			backend.proxy.ServeHTTP(w, r)
 		}
 
-		httpTraceHdrs(cacheHandlerFn, w, r, backend)
+		httpTraceHdrs(handlerFn, w, r, backend)
 		return
 	}
 	w.WriteHeader(http.StatusBadGateway)
@@ -584,7 +579,6 @@ func configureSite(ctx *cli.Context, siteNum int, siteStrs []string, healthCheck
 		endpoints = siteStrs
 	}
 
-	cacheCfg := newCacheConfig()
 	var backends []*Backend
 	var prevScheme string
 	var transport http.RoundTripper
@@ -634,7 +628,7 @@ func configureSite(ctx *cli.Context, siteNum int, siteStrs []string, healthCheck
 		stats := BackendStats{MinLatency: time.Duration(24 * time.Hour), MaxLatency: time.Duration(0)}
 		backend := &Backend{siteNum, endpoint, proxy, &http.Client{
 			Transport: proxy.Transport,
-		}, 0, healthCheckPath, healthCheckPort, healthCheckDuration, &stats, newCacheClient(ctx, cacheCfg)}
+		}, 0, healthCheckPath, healthCheckPort, healthCheckDuration, &stats}
 		go backend.healthCheck()
 		proxy.ErrorHandler = backend.ErrorHandler
 		backends = append(backends, backend)
