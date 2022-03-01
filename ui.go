@@ -83,7 +83,7 @@ func initUI(m *multisite) {
 		grid.SetBorderColor(tcell.ColorTeal)
 		frame := tview.NewFrame(tview.NewBox()).
 			SetBorders(1, 1, 1, 1, 1, 1).
-			AddText("ｓｉｄｅｋｉｃｋ", true, tview.AlignCenter, tcell.ColorWhite).
+			AddText("SIDEWEED", true, tview.AlignCenter, tcell.ColorWhite).
 			AddText("<ctrl-c> Quit", true, tview.AlignRight, tcell.ColorSlateGray)
 
 		grid.AddItem(frame, 0, 0, 3, 1, 0, 100, false)
