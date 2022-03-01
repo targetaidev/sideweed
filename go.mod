@@ -1,4 +1,4 @@
-module github.com/minio/sidekick
+module github.com/targetaidev/sideweed
 
 go 1.17
 
