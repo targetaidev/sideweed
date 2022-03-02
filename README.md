@@ -1,4 +1,4 @@
-![build](https://github.com/targetaidev/sideweed/workflows/CI/badge.svg) ![license](https://img.shields.io/badge/license-AGPL%20V3-blue)
+![build](https://github.com/targetaidev/sideweed/workflows/Build/badge.svg) ![license](https://img.shields.io/badge/license-AGPL%20V3-blue)
 
 *sideweed* is a high-performance sidecar load-balancer. By attaching a tiny load balancer as a sidecar to each of the client application processes, you can eliminate the centralized loadbalancer bottleneck and DNS failover management. *sideweed* automatically avoids sending traffic to the failed servers by checking their health via the readiness API and HTTP error returns.
 
