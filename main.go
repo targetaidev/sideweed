@@ -169,7 +169,7 @@ type Backend struct {
 	up                  int32
 	healthCheckPath     string
 	healthCheckPort     int
-	healthCheckDuration int
+	healthCheckDuration time.Duration
 	Stats               *BackendStats
 }
 
@@ -276,7 +276,7 @@ func (b *Backend) healthCheck() {
 				logMsg(logMessage{Endpoint: b.endpoint, Error: err})
 			}
 			b.setOffline()
-			time.Sleep(time.Duration(b.healthCheckDuration) * time.Second)
+			time.Sleep(b.healthCheckDuration)
 			continue
 		}
 
@@ -319,7 +319,7 @@ func (b *Backend) healthCheck() {
 				httpInternalTrace(req, resp, reqTime, respTime, b)
 			}
 		}
-		time.Sleep(time.Duration(b.healthCheckDuration) * time.Second)
+		time.Sleep(b.healthCheckDuration)
 	}
 }
 
@@ -415,7 +415,7 @@ func (s *site) nextProxy() *Backend {
 // ServeHTTP - LoadBalancer implements http.Handler
 func (s *site) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	backend := s.nextProxy()
-	if backend != nil {
+	if backend != nil && backend.Online() {
 		handlerFn := func(w http.ResponseWriter, r *http.Request) {
 			backend.proxy.ServeHTTP(w, r)
 		}
@@ -494,6 +494,8 @@ func clientTransport(ctx *cli.Context) http.RoundTripper {
 		Proxy:                 http.ProxyFromEnvironment,
 		DialContext:           dialContextWithDNSCache(dnsCache, newProxyDialContext(10*time.Second)),
 		MaxIdleConnsPerHost:   1024,
+		WriteBufferSize:       32 << 10, // 32KiB moving up from 4KiB default
+		ReadBufferSize:        32 << 10, // 32KiB moving up from 4KiB default
 		IdleConnTimeout:       15 * time.Second,
 		ExpectContinueTimeout: 15 * time.Second,
 		// Set this value so that the underlying transport round-tripper
@@ -514,7 +516,7 @@ func checkMain(ctx *cli.Context) {
 	}
 }
 
-func configureSite(ctx *cli.Context, siteNum int, siteStrs []string, healthCheckPath string, healthCheckPort int, healthCheckDuration int) *site {
+func configureSite(ctx *cli.Context, siteNum int, siteStrs []string, healthCheckPath string, healthCheckPort int, healthCheckDuration time.Duration) *site {
 	var endpoints []string
 
 	if ellipses.HasEllipses(siteStrs...) {
@@ -603,7 +605,7 @@ func sideweedMain(ctx *cli.Context) {
 	healthCheckPath := ctx.GlobalString("health-path")
 	healthReadCheckPath := ctx.GlobalString("read-health-path")
 	healthCheckPort := ctx.GlobalInt("health-port")
-	healthCheckDuration := ctx.GlobalInt("health-duration")
+	healthCheckDuration := ctx.GlobalDuration("health-duration")
 	addr := ctx.GlobalString("address")
 	globalLoggingEnabled = ctx.GlobalBool("log")
 	globalTrace = ctx.GlobalString("trace")
@@ -680,10 +682,10 @@ func main() {
 			Name:  "health-port",
 			Usage: "health check port",
 		},
-		cli.IntFlag{
+		cli.DurationFlag{
 			Name:  "health-duration, d",
-			Usage: "health check duration in seconds",
-			Value: 5,
+			Usage: "health check duration",
+			Value: 5 * time.Second,
 		},
 		cli.BoolFlag{
 			Name:  "log, l",

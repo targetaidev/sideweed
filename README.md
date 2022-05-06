@@ -31,7 +31,7 @@ FLAGS:
   --health-path value, -p value       health check path
   --read-health-path value, -r value  health check path for read access - valid only for failover site
   --health-port value                 health check port (default: 0)
-  --health-duration value, -d value   health check duration in seconds (default: 5)
+  --health-duration value, -d value   health check duration in seconds (default: 5s)
   --log, -l                           enable logging
   --trace value, -t value             enable request tracing - valid values are [all,application,cluster] (default: "all")
   --quiet, -q                         disable console messages
