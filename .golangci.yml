@@ -9,14 +9,23 @@ linters:
   disable-all: true
   enable:
     - deadcode
+    - durationcheck
+    - gocritic
+    - gofmt
+    - gofumpt
     - goimports
+    - gomodguard
     - gosimple
     - govet
     - ineffassign
     - misspell
     - revive
     - structcheck
+    - tenv
     - typecheck
+    - unconvert
+    - unused
+    - varcheck
 
 issues:
   exclude-use-default: false

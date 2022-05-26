@@ -327,7 +327,7 @@ func (b *Backend) updateDowntime(downtime time.Duration) {
 	b.Stats.Lock()
 	defer b.Stats.Unlock()
 	b.Stats.LastDowntime = downtime
-	b.Stats.CumDowntime = b.Stats.CumDowntime + downtime
+	b.Stats.CumDowntime += downtime
 }
 
 // updateCallStats updates the cumulative stats for each call to backend
@@ -578,7 +578,7 @@ func configureSite(ctx *cli.Context, siteNum int, siteStrs []string, healthCheck
 			Transport: transport,
 		}
 
-		stats := BackendStats{MinLatency: time.Duration(24 * time.Hour), MaxLatency: time.Duration(0)}
+		stats := BackendStats{MinLatency: 24 * time.Hour, MaxLatency: 0}
 		backend := &Backend{siteNum, endpoint, proxy, &http.Client{
 			Transport: proxy.Transport,
 		}, 0, healthCheckPath, healthCheckPort, healthCheckDuration, &stats}
