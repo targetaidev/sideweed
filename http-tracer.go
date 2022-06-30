@@ -315,7 +315,7 @@ func doTrace(trace TraceInfo, backend *Backend) {
 		return
 	}
 
-	if globalTrace == "cluster" && strings.Contains(backend.healthCheckURL, st.Path) {
+	if globalTrace == "cluster" && !strings.Contains(backend.healthCheckURL, st.Path) {
 		return
 	}
 
