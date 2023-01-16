@@ -18,6 +18,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -213,11 +214,11 @@ type BackendStats struct {
 	DowntimeStart   time.Time
 }
 
-// ErrorHandler called by httputil.ReverseProxy for errors.
+// ErrorHandler avoid canceled context error since it means the client disconnected.
 func (b *Backend) ErrorHandler(_ http.ResponseWriter, _ *http.Request, err error) {
-	if err != nil {
+	if err != nil && !errors.Is(err, context.Canceled) {
 		if globalLoggingEnabled {
-			logMsg(logMessage{Endpoint: b.endpoint, Error: err})
+			logMsg(logMessage{Endpoint: b.endpoint, Status: "down", Error: err})
 		}
 		b.setOffline()
 	}
