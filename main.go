@@ -39,8 +39,8 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/rs/dnscache"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/crypto/ssh/terminal"
 	"golang.org/x/sys/unix"
+	"golang.org/x/term"
 
 	"github.com/minio/cli"
 	"github.com/minio/pkg/console"
@@ -533,18 +533,19 @@ type bufPool struct {
 }
 
 func (b *bufPool) Put(buf []byte) {
-	b.pool.Put(buf)
+	b.pool.Put(&buf)
 }
 
 func (b *bufPool) Get() []byte {
-	return b.pool.Get().([]byte)
+	bufp := b.pool.Get().(*[]byte)
+	return *bufp
 }
 
 func newBufPool(sz int) httputil.BufferPool {
 	return &bufPool{pool: sync.Pool{
 		New: func() interface{} {
 			buf := make([]byte, sz)
-			return buf
+			return &buf
 		},
 	}}
 }
@@ -655,7 +656,7 @@ func sideweedMain(ctx *cli.Context) {
 	globalTrace = ctx.GlobalString("trace")
 	globalJSONEnabled = ctx.GlobalBool("json")
 	globalQuietEnabled = ctx.GlobalBool("quiet")
-	globalConsoleDisplay = globalLoggingEnabled || ctx.IsSet("trace") || !terminal.IsTerminal(int(os.Stdout.Fd()))
+	globalConsoleDisplay = globalLoggingEnabled || ctx.IsSet("trace") || !term.IsTerminal(int(os.Stdout.Fd()))
 	globalDebugEnabled = ctx.GlobalBool("debug")
 
 	if !strings.HasPrefix(healthCheckPath, slashSeparator) {
