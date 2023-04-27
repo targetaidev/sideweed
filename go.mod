@@ -9,9 +9,8 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/minio/cli v1.24.2
 	github.com/minio/pkg v1.6.5
-	github.com/prometheus/client_golang v1.14.0
-	github.com/rivo/tview v0.0.0-20230330183452-5796b0cd5c1f
-	github.com/rs/dnscache v0.0.0-20211102005908-e0241e321417
+	github.com/prometheus/client_golang v1.15.0
+	github.com/rivo/tview v0.0.0-20230406072732-e22ce9588bb4
 	github.com/sirupsen/logrus v1.9.0
 	go.uber.org/atomic v1.10.0
 	golang.org/x/sys v0.6.0
