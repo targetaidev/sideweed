@@ -52,7 +52,6 @@ func TestGetHealthCheckURL_Valid(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			healthCheckURL, err := getHealthCheckURL(tc.endpoint, tc.healthCheckPath, tc.healthCheckPort)
-
 			if err != nil {
 				t.Errorf("Expected no error, got %q", err)
 			}

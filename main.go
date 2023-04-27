@@ -133,7 +133,7 @@ func (l logMessage) String() string {
 		l.Timestamp.Format(timeFormat), l.Endpoint, l.Status, l.Error)
 }
 
-func setTCPParameters(network, address string, c syscall.RawConn) error {
+func setTCPParameters(_ string, _ string, c syscall.RawConn) error {
 	c.Control(func(fdPtr uintptr) {
 		// got socket file descriptor to set parameters.
 		fd := int(fdPtr)
@@ -155,7 +155,6 @@ func setTCPParameters(network, address string, c syscall.RawConn) error {
 		// Enable TCP quick ACK, John Nagle says
 		// "Set TCP_QUICKACK. If you find a case where that makes things worse, let me know."
 		_ = syscall.SetsockoptInt(fd, syscall.IPPROTO_TCP, unix.TCP_QUICKACK, 1)
-
 	})
 	return nil
 }
@@ -215,7 +214,7 @@ type BackendStats struct {
 }
 
 // ErrorHandler called by httputil.ReverseProxy for errors.
-func (b *Backend) ErrorHandler(w http.ResponseWriter, r *http.Request, err error) {
+func (b *Backend) ErrorHandler(_ http.ResponseWriter, _ *http.Request, err error) {
 	if err != nil {
 		if globalLoggingEnabled {
 			logMsg(logMessage{Endpoint: b.endpoint, Error: err})
@@ -489,7 +488,7 @@ func newProxyDialContext(dialTimeout time.Duration) DialContext {
 	}
 }
 
-func clientTransport(ctx *cli.Context) http.RoundTripper {
+func clientTransport() http.RoundTripper {
 	tr := &http.Transport{
 		Proxy:                 http.ProxyFromEnvironment,
 		DialContext:           dialContextWithDNSCache(dnsCache, newProxyDialContext(10*time.Second)),
@@ -565,7 +564,7 @@ func configureSite(ctx *cli.Context, siteNum int, siteStrs []string, healthCheck
 				endpoint, ctx.App.Name))
 		}
 		if transport == nil {
-			transport = clientTransport(ctx)
+			transport = clientTransport()
 		}
 
 		proxy := &httputil.ReverseProxy{
